@@ -3,8 +3,13 @@ const DBcategories = require("../models/category");
 
 const router = express.Router();
 
+//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//xxxxxxxxxxxxxxxxxxxxxxxx| WHY IT DOESENT WANT TO POPULATE THE ARRAY OF PORPDUCTS |xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 router.get("/", async (req, res) => {
-  let categories = await DBcategories.find({});
+  let categories = await DBcategories.find({})
+    .populate("products")
+    .exec();
   res.send(categories);
 });
 

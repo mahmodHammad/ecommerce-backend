@@ -3,8 +3,12 @@
 const mongoose = require("mongoose");
 
 const Cat = new mongoose.Schema({
-  title: { type: String, require: true }
-  //products
+  title: { type: String, require: true },
+  products: {
+    type: [mongoose.Schema.Types.ObjectId],
+    default: [],
+    ref: "products"
+  }
 });
 
 const categoryModel = mongoose.model("categories", Cat);

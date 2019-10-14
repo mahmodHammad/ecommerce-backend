@@ -1,7 +1,8 @@
 const express = require("express");
 const DBproduct = require("../models/product");
+const DBcategory = require("../models/category");
 const router = express.Router();
-// THE WILL BE ERROR IF I DELETED A CATEGORY THAT IS INSIDE A PRODUCTs
+
 router.get("/", async (req, res) => {
   let categories = await DBproduct.find({})
     .populate("category")
@@ -9,23 +10,54 @@ router.get("/", async (req, res) => {
   res.send(categories);
 });
 
-router.post("/", (req, res) => {
-  DBproduct.create({
+//create product ,then add it to categories.profucts array
+//inputs: category(id) , title(string) , price(number)
+router.post("/", async (req, res) => {
+  try {
+    var itscategory = await DBcategory.findById(req.body.category);
+  } catch (error) {
+    return res.status(500).send("category not found");
+  }
+
+  let product = await DBproduct.create({
     title: req.body.title,
-    price: 10,
+    price: req.body.price,
+    image: req.body.image,
     category: req.body.category
-  })
-    .then(d => res.send(d))
-    .catch(e => res.status(500).send(e));
+  });
+  product.save();
+  itscategory.products.push(product._id);
+  itscategory.save();
+  res.send(product);
 });
 
-//change title of product
-//inouts _id , title
-router.put("/title", async (req, res) => {
+//change title,price,image of product
+//inouts product(id) , title,price ,image
+router.put("/update", async (req, res) => {
+  if (!req.body._id) return res.status(500).send("Not Given ID");
+
+  let product = await DBproduct.findById(req.body._id);
+  var title = req.body.title;
+  var image = req.body.image;
+  var price = req.body.price;
+  var category = req.body.category;
+
+  if (!req.body.title) var title = product.title;
+  if (!req.body.price) var price = product.price;
+  if (!req.body.image) var image = product.image;
+  if (!req.body.category) var category = product.category;
+
   let updated = await DBproduct.findOneAndUpdate(
     { _id: req.body._id },
-    { $set: { title: req.body.title } },
-    { new: true, useFindAndModify: false }
+    {
+      $set: {
+        title: title,
+        price: price,
+        image: image,
+        category: category
+      }
+    },
+    { new: true, useFindAndModify: false, upsert: true }
   );
   try {
     res.send(updated);
@@ -34,25 +66,15 @@ router.put("/title", async (req, res) => {
   }
 });
 
-//change cagegory id
-//inouts _id , category
-router.put("/category", async (req, res) => {
-  let updated = await DBproduct.findOneAndUpdate(
-    { _id: req.body._id },
-    { $set: { category: req.body.category } },
-    { new: true, useFindAndModify: false }
-  );
-  try {
-    res.send(updated);
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-
-router.delete("/", (req, res) => {
-  DBproduct.deleteOne({ _id: req.body._id })
-    .then(r => res.send(r))
-    .catch(e => res.status(500).send(e));
+//delete product & remove it from categories
+//inputs id
+router.delete("/", async (req, res) => {
+  let products = await DBproduct.findByIdAndDelete(req.body._id);
+  let categories = await DBcategory.findById(products.category);
+  let index = categories.products.indexOf(req.body._id);
+  categories.products.splice(index, 1);
+  categories.save();
+  res.send(categories);
 });
 
 module.exports = router;
