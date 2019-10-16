@@ -1,3 +1,5 @@
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 const express = require("express");
 const DBproduct = require("../models/product");
 const DBcategory = require("../models/category");
@@ -68,13 +70,30 @@ router.put("/update", async (req, res) => {
 
 //delete product & remove it from categories
 //inputs id
-router.delete("/", async (req, res) => {
+//for
+router.delete("/", [auth, admin], async (req, res) => {
   let products = await DBproduct.findByIdAndDelete(req.body._id);
+  console.log(req.user);
+  if (!products) return res.status(400).send("this product is not available");
   let categories = await DBcategory.findById(products.category);
-  let index = categories.products.indexOf(req.body._id);
-  categories.products.splice(index, 1);
-  categories.save();
-  res.send(categories);
+  if (categories) {
+    let index = categories.products.indexOf(req.body._id);
+    categories.products.splice(index, 1);
+    categories.save();
+
+    return res.send({
+      productRemoved: true,
+      categoryRemoved: true,
+      product: products,
+      category: categories
+    });
+  }
+  res.send({
+    productRemoved: true,
+    categoryRemoved: false,
+    product: products,
+    category: "NOT found"
+  });
 });
 
 module.exports = router;
